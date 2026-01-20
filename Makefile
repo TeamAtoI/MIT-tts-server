@@ -5,7 +5,7 @@ CURAND_LIB := $(shell uv run python -c "import os, nvidia.curand; print(os.path.
 CUFFT_LIB := $(shell uv run python -c "import os, nvidia.cufft; print(os.path.join(nvidia.cufft.__path__[0], 'lib'))" 2>/dev/null)
 export LD_LIBRARY_PATH := $(CUDNN_LIB):$(CUBLAS_LIB):$(CUDA_RT_LIB):$(CURAND_LIB):$(CUFFT_LIB):$(LD_LIBRARY_PATH)
 
-.PHONY: test server run download
+.PHONY: test server server-cpu run download
 
 # 모델 다운로드 (Hugging Face)
 download:
@@ -15,9 +15,13 @@ download:
 test:
 	uv run python scripts/test_tts_model.py
 
-# FastAPI 서버 실행
+# FastAPI 서버 실행 (GPU 모드, 기본)
 server:
 	uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# FastAPI 서버 실행 (CPU 모드)
+server-cpu:
+	TTS_USE_GPU=false uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 # 임의 Python 스크립트 실행 (예: make run SCRIPT=scripts/foo.py)
 run:
