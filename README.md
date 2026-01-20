@@ -8,20 +8,19 @@ Supertonic 2 ONNX 기반 다국어 음성 합성 (TTS) 서버
 
 ### 1. 모델 다운로드 (필수)
 
-**Git LFS 설치** (필수):
+**uv 먼저 설치** (아래 2번 참고):
 ```bash
-sudo apt-get install git-lfs && git lfs install
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
 **모델 다운로드**:
 ```bash
-# Hugging Face에서 Supertonic 2 모델 다운로드
-git clone https://huggingface.co/Supertone/supertonic-2 assets
+# Hugging Face Hub을 통해 Supertonic 2 모델 다운로드
+make download
 ```
 
 > 📦 약 1.2GB의 ONNX 모델 파일이 다운로드됩니다.  
-> ⚠️ **Git LFS 없이 clone하면 모델 파일이 제대로 다운로드되지 않습니다.**  
-> ⚠️ 모델 없이는 서버가 실행되지 않습니다.
+> ⚠️ 모델 없이는 서버가 실행되지 않습니다.  
 
 
 ### 2. uv 설치
@@ -44,47 +43,42 @@ uv sync --extra cpu
 
 자세한 설치 방법은 [SETUP.md](SETUP.md)를 참고하세요.
 
-### 4. 실행 권한 설정
+### 4. 테스트
 
 ```bash
-chmod +x start_cpu.sh start_gpu.sh
-```
-
-### 5. 테스트
-
-```bash
-uv run python scripts/test_tts_model.py
+make test
 ls results/  # test_korean.wav 확인
 ```
 
-### 6. 서버 실행
+### 5. 서버 실행
 
-#### CPU 모드
 ```bash
-./start_cpu.sh
+# GPU 모드 (기본)
+make server
+
+# CPU 모드
+make server-cpu
 ```
 
-#### GPU 모드
+<details>
+<summary>셸 스크립트 사용 (대안)</summary>
+
 ```bash
+# CPU 모드
+./start_cpu.sh
+
+# GPU 모드  
 ./start_gpu.sh
 ```
-
-또는 직접 실행:
-```bash
-# CPU
-uv run uvicorn app.main:app --reload --port 8000
-
-# GPU
-TTS_USE_GPU=true uv run uvicorn app.main:app --reload --port 8000
-```
+</details>
 
 GPU 설정 방법은 [SETUP.md](SETUP.md#gpu-설정)을 참고하세요.
 
-### 7. 웹 테스트
+### 6. 웹 테스트
 
 서버가 실행된 상태에서 브라우저로 접속:
 
-- **테스트 UI**: http://localhost:8000/tests/tts_player.html
+- **테스트 UI**: http://localhost:8000/example/tts_player.html
 - **API 문서**: http://localhost:8000/docs
 - **시스템 정보**: http://localhost:8000/tts/system
 

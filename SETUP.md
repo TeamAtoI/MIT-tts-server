@@ -4,30 +4,31 @@
 
 ## 설치
 
-### 1. 모델 다운로드 (필수)
+### 1. uv 설치
 
-**Git LFS 설치** (필수):
+**uv 설치**:
 
 ```bash
-# macOS
-brew install git-lfs && git lfs install
+# Linux/macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Ubuntu/Debian
-sudo apt-get install git-lfs && git lfs install
+# PATH 추가 (.bashrc에 영구 등록)
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
 
-# CentOS/RHEL
-sudo yum install git-lfs && git lfs install
-
-# 기타 OS는 https://git-lfs.com 참고
+# 버전 확인
+uv --version
 ```
+
+### 2. 모델 다운로드 (필수)
 
 **모델 다운로드**:
 
-Supertonic 2 ONNX 모델을 Hugging Face에서 다운로드합니다:
+Supertonic 2 ONNX 모델을 Hugging Face Hub을 통해 다운로드합니다:
 
 ```bash
 cd supertonic-server
-git clone https://huggingface.co/Supertone/supertonic-2 assets
+make download
 ```
 
 다운로드되는 파일 구조:
@@ -45,23 +46,10 @@ assets/
     └── M1.json ~ M5.json
 ```
 
-> ⚠️ **중요**: Git LFS 없이 clone하면 모델 파일이 제대로 다운로드되지 않습니다.  
 > ⚠️ 모델 파일 없이는 서버가 실행되지 않습니다.  
-> 약 1.2GB의 데이터가 다운로드됩니다.
-
-### 2. uv 설치
-
-```bash
-# Linux/macOS
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# PATH 추가 (.bashrc에 영구 등록)
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
-source ~/.bashrc
-
-# 버전 확인
-uv --version
-```
+> 📦 약 1.2GB의 데이터가 다운로드됩니다.  
+> ✅ Git LFS 설치가 불필요하며, `huggingface-hub` 패키지를 사용하여 자동으로 다운로드됩니다.  
+> ✅ 중단된 다운로드는 자동으로 재개됩니다.
 
 ### 3. 의존성 설치
 
@@ -83,7 +71,15 @@ uv sync --extra cpu
 ### 4. 사용법
 
 ```bash
-# 명령어 실행 (권장)
+# Makefile 타겟 사용 (권장)
+make server      # GPU 모드로 서버 실행 (기본)
+make server-cpu  # CPU 모드로 서버 실행
+make test        # 모델 테스트
+
+# 또는 환경 변수를 직접 설정
+TTS_USE_GPU=false make server  # CPU 모드
+
+# 또는 uv를 통한 직접 실행
 uv run uvicorn app.main:app --port 8000
 uv run python scripts/test_tts_model.py
 
@@ -92,6 +88,10 @@ source .venv/bin/activate
 uvicorn app.main:app --port 8000
 python scripts/test_tts_model.py
 ```
+
+> 💡 **GPU/CPU 모드 선택**:
+> - 기본값은 GPU 모드입니다 (`make server`).
+> - CPU 모드로 실행하려면 `make server-cpu`를 사용하세요.
 
 ### 5. 의존성 관리
 
