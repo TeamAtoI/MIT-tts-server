@@ -1,7 +1,7 @@
 """
 TTS API Routes
 """
-from fastapi import APIRouter, Response, HTTPException
+from fastapi import APIRouter, Response, HTTPException, Request
 from pydantic import BaseModel, Field
 from app.service.tts_service import synthesize, get_system_info
 
@@ -28,10 +28,10 @@ class TTSRequest(BaseModel):
         }
 
 @router.post("/synthesize", response_class=Response)
-async def synthesize_speech(req: TTSRequest):
+async def synthesize_speech(req: TTSRequest, request: Request):
     """
     텍스트를 음성으로 합성
-    
+
     - **text**: 합성할 텍스트 (최대 1000자)
     - **voice**: F1, F2, F3, F4, F5 (여성) 또는 M1, M2, M3, M4, M5 (남성)
     - **lang**: ko (한국어), en (영어), es (스페인어), pt (포르투갈어), fr (프랑스어)
@@ -40,7 +40,9 @@ async def synthesize_speech(req: TTSRequest):
     - **output_format**: wav (WAV 파일) 또는 pcm (raw PCM)
     """
     try:
+        tts = request.app.state.tts_engine
         audio_bytes, metrics = synthesize(
+            tts=tts,
             text=req.text,
             voice=req.voice,
             lang=req.lang,
@@ -80,9 +82,10 @@ async def list_voices():
     }
 
 @router.get("/system")
-async def system_info():
+async def system_info(request: Request):
     """시스템 및 GPU 사용 정보"""
-    return get_system_info()
+    tts = request.app.state.tts_engine
+    return get_system_info(tts)
 
 @router.get("/synthesize")
 async def synthesize_info():
