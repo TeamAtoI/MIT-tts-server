@@ -10,7 +10,7 @@ import os
 import logging
 from pathlib import Path
 from typing import Tuple, Dict
-from scripts.onnx_tts_engine import SupertonicONNXTTS
+from app.inference.onnx_tts_engine import SupertonicONNXTTS
 
 logger = logging.getLogger(__name__)
 

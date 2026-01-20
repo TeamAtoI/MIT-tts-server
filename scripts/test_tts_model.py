@@ -7,7 +7,7 @@ Supertonic TTS 모델 테스트
 import os
 import struct
 import wave
-from scripts.onnx_tts_engine import SupertonicONNXTTS
+from app.inference.onnx_tts_engine import SupertonicONNXTTS
 
 def pcm_to_wav(pcm_bytes: bytes, sample_rate: int, output_path: str):
     """PCM16LE bytes를 WAV 파일로 변환"""
@@ -24,7 +24,7 @@ print("=" * 60)
 # --- 1. TTS 엔진 초기화 ---
 tts = SupertonicONNXTTS(
     onnx_dir="assets/onnx",
-    use_gpu=False,  # CUDA 사용 시 True로 변경
+    use_gpu=True,  # CUDA 사용 시 True로 변경
 )
 
 # --- 2. 한국어 텍스트 합성 ---
