@@ -1,6 +1,7 @@
 """
 TTS API Routes
 """
+from typing import Literal
 from fastapi import APIRouter, Response, HTTPException, Request
 from pydantic import BaseModel, Field
 from app.service.tts_service import synthesize, get_system_info
@@ -9,11 +10,11 @@ router = APIRouter(prefix="/tts", tags=["TTS"])
 
 class TTSRequest(BaseModel):
     text: str = Field(..., description="합성할 텍스트", min_length=1, max_length=1000)
-    voice: str = Field(default="F1", description="음성 스타일 (F1-F5, M1-M5)")
-    lang: str = Field(default="ko", description="언어 (ko, en, es, pt, fr)")
+    voice: Literal["F1", "F2", "F3", "F4", "F5", "M1", "M2", "M3", "M4", "M5"] = Field(default="F1", description="음성 스타일")
+    lang: Literal["ko", "en", "es", "pt", "fr"] = Field(default="ko", description="언어")
     speed: float = Field(default=1.05, description="속도 (0.5 ~ 2.0)", ge=0.5, le=2.0)
     total_step: int = Field(default=5, description="품질 (5=빠름, 30=고품질)", ge=1, le=30)
-    output_format: str = Field(default="pcm", description="출력 형식 (wav 또는 pcm)")
+    output_format: Literal["wav", "pcm"] = Field(default="pcm", description="출력 형식")
 
     class Config:
         json_schema_extra = {
