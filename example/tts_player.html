@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supertonic TTS Player</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .system-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        
+        .system-info div {
+            margin: 5px 0;
+        }
+        
+        .system-info strong {
+            color: #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Noto Sans KR', inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .row {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .col {
+            flex: 1;
+        }
+        
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102,126,234,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .audio-player {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .audio-player.show {
+            display: block;
+        }
+        
+        audio {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 13px;
+        }
+        
+        .metric {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        
+        .metric-label {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        
+        .metric-value {
+            color: #667eea;
+            font-size: 18px;
+            font-weight: 700;
+            margin-top: 5px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            display: none;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Supertonic TTS</h1>
+        <p class="subtitle">한국어 음성 합성 엔진</p>
+        
+        <div class="system-info" id="systemInfo">
+            <div><strong>시스템 정보 로딩중...</strong></div>
+        </div>
+        
+        <div class="form-group">
+            <label for="text">합성할 텍스트</label>
+            <textarea id="text" placeholder="여기에 텍스트를 입력하세요...">안녕하세요. 슈퍼토닉 음성 합성 엔진입니다.</textarea>
+        </div>
+        
+        <div class="row">
+            <div class="col">
+                <div class="form-group">
+                    <label for="voice">음성</label>
+                    <select id="voice">
+                        <optgroup label="여성">
+                            <option value="F1" selected>Female 1</option>
+                            <option value="F2">Female 2</option>
+                            <option value="F3">Female 3</option>
+                            <option value="F4">Female 4</option>
+                            <option value="F5">Female 5</option>
+                        </optgroup>
+                        <optgroup label="남성">
+                            <option value="M1">Male 1</option>
+                            <option value="M2">Male 2</option>
+                            <option value="M3">Male 3</option>
+                            <option value="M4">Male 4</option>
+                            <option value="M5">Male 5</option>
+                        </optgroup>
+                    </select>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label for="speed">속도</label>
+                    <input type="number" id="speed" value="1.05" min="0.5" max="2.0" step="0.05">
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col">
+                <div class="form-group">
+                    <label for="totalStep">품질 (Step)</label>
+                    <select id="totalStep">
+                        <option value="5" selected>5 (빠름)</option>
+                        <option value="10">10 (보통)</option>
+                        <option value="15">15 (좋음)</option>
+                        <option value="20">20 (우수)</option>
+                        <option value="30">30 (최고)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label for="lang">언어</label>
+                    <select id="lang">
+                        <option value="ko" selected>한국어</option>
+                        <option value="en">English</option>
+                        <option value="es">Español</option>
+                        <option value="pt">Português</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <button id="synthesizeBtn" onclick="synthesize()">🎵 음성 생성</button>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>음성 생성 중...</div>
+        </div>
+        
+        <div class="audio-player" id="audioPlayer">
+            <audio id="audio" controls></audio>
+            <div class="metrics" id="metrics"></div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        
+        // 시스템 정보 로드
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/tts/system`);
+                const data = await response.json();
+                
+                const deviceEmoji = data.device === 'GPU' ? '🚀' : '💻';
+                const deviceColor = data.device === 'GPU' ? '#4caf50' : '#2196f3';
+                
+                let html = `
+                    <div><strong>${deviceEmoji} Device:</strong> <span style="color: ${deviceColor}">${data.device}</span></div>
+                    <div><strong>Provider:</strong> ${data.execution_provider}</div>
+                    <div><strong>Sample Rate:</strong> ${data.sample_rate} Hz</div>
+                `;
+                
+                if (data.gpu_memory) {
+                    html += `<div><strong>GPU Memory:</strong> ${data.gpu_memory}</div>`;
+                }
+                
+                document.getElementById('systemInfo').innerHTML = html;
+            } catch (error) {
+                document.getElementById('systemInfo').innerHTML = '<div style="color: red;">시스템 정보를 불러올 수 없습니다.</div>';
+            }
+        }
+        
+        async function synthesize() {
+            const text = document.getElementById('text').value;
+            const voice = document.getElementById('voice').value;
+            const speed = parseFloat(document.getElementById('speed').value);
+            const totalStep = parseInt(document.getElementById('totalStep').value);
+            const lang = document.getElementById('lang').value;
+            
+            if (!text.trim()) {
+                alert('텍스트를 입력해주세요.');
+                return;
+            }
+            
+            const btn = document.getElementById('synthesizeBtn');
+            const loading = document.getElementById('loading');
+            const player = document.getElementById('audioPlayer');
+            
+            btn.disabled = true;
+            loading.classList.add('show');
+            player.classList.remove('show');
+            
+            try {
+                const startTime = performance.now();
+                
+                const response = await fetch(`${API_BASE}/tts/synthesize`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text,
+                        voice,
+                        lang,
+                        speed,
+                        total_step: totalStep,
+                        output_format: 'wav'
+                    })
+                });
+                
+                const requestTime = performance.now() - startTime;
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                // 성능 메트릭 추출 (소문자로 접근)
+                const inferenceTime = response.headers.get('x-inference-time-ms');
+                const totalTime = response.headers.get('x-total-time-ms');
+                const audioDuration = response.headers.get('x-audio-duration-sec');
+                const rtf = response.headers.get('x-rtf');
+                
+                // 오디오 재생
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const audio = document.getElementById('audio');
+                audio.src = url;
+                
+                // 메트릭 표시
+                document.getElementById('metrics').innerHTML = `
+                    <div class="metric">
+                        <div class="metric-label">Inference Time</div>
+                        <div class="metric-value">${inferenceTime}ms</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Total Time</div>
+                        <div class="metric-value">${totalTime}ms</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Audio Duration</div>
+                        <div class="metric-value">${audioDuration}s</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">RTF (Real-Time Factor)</div>
+                        <div class="metric-value">${rtf}x</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">Network Time</div>
+                        <div class="metric-value">${requestTime.toFixed(0)}ms</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-label">File Size</div>
+                        <div class="metric-value">${(blob.size / 1024).toFixed(1)}KB</div>
+                    </div>
+                `;
+                
+                player.classList.add('show');
+                audio.play();
+                
+            } catch (error) {
+                alert('음성 생성 실패: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                loading.classList.remove('show');
+            }
+        }
+        
+        // 초기화
+        loadSystemInfo();
+        
+        // Enter로 전송
+        document.getElementById('text').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                synthesize();
+            }
+        });
+    </script>
+</body>
+</html>
