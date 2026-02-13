@@ -17,9 +17,6 @@ results/
 venv/
 env/
 
-# UV
-uv.lock
-
 # Backup files
 *_OLD.*
 *_NEW.*
@@ -36,4 +33,3 @@ uv.lock
 Thumbs.db
 
 /assets
-
