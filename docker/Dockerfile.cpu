@@ -1,0 +1,58 @@
+FROM python:3.11-slim AS builder
+
+ARG MODEL_REPO_ID=Supertone/supertonic-2
+ARG MODEL_REVISION=75e6727618a02f323c720cba9478152d4bc16ca4
+ARG UV_VERSION=0.9.20
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    UV_LINK_MODE=copy
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir "uv==${UV_VERSION}"
+
+COPY pyproject.toml uv.lock ./
+COPY scripts/model_download.py scripts/model_download.py
+
+RUN uv sync --frozen --no-dev --extra cpu --no-install-project
+
+RUN .venv/bin/python scripts/model_download.py \
+    --repo-id "${MODEL_REPO_ID}" \
+    --revision "${MODEL_REVISION}" \
+    --local-dir ./assets
+
+COPY app app
+COPY example example
+COPY docker/entrypoint.sh docker/entrypoint.sh
+
+
+FROM python:3.11-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/app/.venv/bin:${PATH}" \
+    TTS_USE_GPU=false
+
+WORKDIR /app
+
+RUN useradd --create-home --shell /bin/bash appuser
+
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/app /app/app
+COPY --from=builder /app/example /app/example
+COPY --from=builder /app/assets /app/assets
+COPY --from=builder /app/docker/entrypoint.sh /app/docker/entrypoint.sh
+
+RUN chmod +x /app/docker/entrypoint.sh \
+    && chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 8000
+
+ENTRYPOINT ["/app/docker/entrypoint.sh"]
