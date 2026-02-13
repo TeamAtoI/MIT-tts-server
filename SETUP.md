@@ -47,7 +47,7 @@ assets/
 ```
 
 > ⚠️ 모델 파일 없이는 서버가 실행되지 않습니다.  
-> 📦 약 1.2GB의 데이터가 다운로드됩니다.  
+> 📦 약 250MB의 데이터가 다운로드됩니다.  
 > ✅ Git LFS 설치가 불필요하며, `huggingface-hub` 패키지를 사용하여 자동으로 다운로드됩니다.  
 > ✅ 중단된 다운로드는 자동으로 재개됩니다.
 
@@ -56,15 +56,15 @@ assets/
 ```bash
 cd supertonic-server
 
-# GPU 버전 (기본, CUDA 11.8 + cuDNN 8.x)
-uv sync
+# GPU 버전
+uv sync --extra gpu
 
 # CPU 전용 (GPU 없는 환경)
 uv sync --extra cpu
 ```
 
 > 📌 **CUDA 버전 요구사항**:
-> - onnxruntime-gpu 1.16.3은 CUDA 11.8 + cuDNN 8.x 지원
+> - onnxruntime-gpu 1.17.x는 CUDA 11.8 + cuDNN 8.x 지원
 > - GPU: NVIDIA GPU + CUDA 11.8 + cuDNN 8.x + 호환 드라이버 필요
 > - CPU: GPU 없는 환경에서는 `--extra cpu` 옵션 사용
 
@@ -80,8 +80,8 @@ make test        # 모델 테스트
 TTS_USE_GPU=false make server  # CPU 모드
 
 # 또는 uv를 통한 직접 실행
-uv run uvicorn app.main:app --port 8000
-uv run python scripts/test_tts_model.py
+uv run --extra gpu uvicorn app.main:app --port 8000
+uv run --extra gpu python scripts/test_tts_model.py
 
 # 또는 가상환경 활성화 후 사용
 source .venv/bin/activate
@@ -111,17 +111,86 @@ uv lock --upgrade
 
 ---
 
+## Docker 배포 (Compose VM)
+
+### 운영 전제
+
+- GPU 서버는 NVIDIA Container Toolkit이 설치되어 있어야 합니다.
+- 서비스는 외부 공개 없이 Tailscale 내부망 HTTP로만 운영합니다.
+- 모델은 이미지에 내장되며, 기본 리비전은 고정값을 사용합니다.
+  - `75e6727618a02f323c720cba9478152d4bc16ca4`
+
+### 1. GHCR 로그인
+
+```bash
+export GHCR_USER=<your-github-id>
+export GHCR_TOKEN=<your-ghcr-token>
+make docker-login-ghcr
+```
+
+### 2. 이미지 빌드
+
+```bash
+# linux/amd64 GPU 이미지
+make docker-build-gpu TAG=v0.1.0
+
+# linux/amd64 CPU 이미지
+make docker-build-cpu TAG=v0.1.0
+```
+
+필요 시 모델 리비전 변경:
+
+```bash
+make docker-build-gpu TAG=v0.1.0 MODEL_REVISION=<revision-sha>
+```
+
+### 3. GHCR 푸시
+
+```bash
+make docker-push-all TAG=v0.1.0
+```
+
+### 4. GPU 서버 실행 (Compose)
+
+```bash
+docker compose pull
+docker compose up -d
+
+# 특정 태그로 오버라이드
+TTS_GPU_IMAGE=ghcr.io/teamatoi/mit-tts:gpu-v0.1.0 docker compose up -d
+```
+
+기본 포트 매핑: `8005:8000`
+
+중지:
+
+```bash
+docker compose down
+```
+
+### 5. CPU 이미지 단독 실행
+
+```bash
+docker run -d \
+  --name tts-cpu \
+  -p 8005:8000 \
+  -e TTS_USE_GPU=false \
+  ghcr.io/teamatoi/mit-tts:cpu-latest
+```
+
+---
+
 ## GPU 설정
 
 > 💡 **기본 설정**: 이 프로젝트는 GPU 환경을 기본으로 합니다.  
-> `uv sync`만 실행하면 자동으로 GPU 지원이 활성화됩니다.
+> `uv sync --extra gpu`로 GPU 의존성을 설치하세요.
 
 ### 요구사항
 
 | 항목 | 요구사항 |
 |------|----------|
 | **GPU** | NVIDIA Tesla V100, A100, RTX 시리즈 등 |
-| **CUDA** | **11.8** (onnxruntime-gpu 1.16.3) |
+| **CUDA** | **11.8** (onnxruntime-gpu 1.17.x) |
 | **cuDNN** | **8.x** (CUDA 11.8 호환) |
 | **드라이버** | 450.80.02+ (Linux), 452.39+ (Windows) |
 
@@ -138,11 +207,11 @@ nvidia-smi
 ### 2. 의존성 설치 확인
 
 ```bash
-# GPU 설정 (기본)
-uv sync
+# GPU 설정
+uv sync --extra gpu
 
 # 설치 확인
-uv run python -c "import onnxruntime as ort; print('Providers:', ort.get_available_providers())"
+uv run --extra gpu python -c "import onnxruntime as ort; print('Providers:', ort.get_available_providers())"
 # 출력 예: Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
 ```
 
