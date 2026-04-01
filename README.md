@@ -19,7 +19,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 make download
 ```
 
-> 📦 약 1.2GB의 ONNX 모델 파일이 다운로드됩니다.  
+> 📦 약 250MB의 ONNX 모델 파일이 다운로드됩니다.  
 > ⚠️ 모델 없이는 서버가 실행되지 않습니다.  
 
 
@@ -34,8 +34,8 @@ source ~/.bashrc
 ### 3. 의존성 설치
 
 ```bash
-# GPU 버전 (기본, CUDA 11.8 + cuDNN 8.x)
-uv sync
+# GPU 버전
+uv sync --extra gpu
 
 # CPU 전용 (GPU 없는 환경)
 uv sync --extra cpu
@@ -105,6 +105,84 @@ GPU 설정 방법은 [SETUP.md](SETUP.md#gpu-설정)을 참고하세요.
 - 10가지 음성 (여성 5종, 남성 5종)
 - GPU/CPU 자동 전환
 - REST API 및 웹 UI
+
+---
+
+## Docker 배포 (Compose VM + GHCR)
+
+### 1. GHCR 로그인
+
+```bash
+export GHCR_USER=<your-github-id>
+export GHCR_TOKEN=<your-ghcr-token>
+make docker-login-ghcr
+```
+
+### 2. 이미지 빌드 (linux/amd64)
+
+```bash
+# GPU 이미지
+make docker-build-gpu TAG=v0.1.0
+
+# CPU 이미지
+make docker-build-cpu TAG=v0.1.0
+```
+
+기본 모델 리비전:
+
+- `75e6727618a02f323c720cba9478152d4bc16ca4`
+
+필요 시 다른 리비전으로 빌드:
+
+```bash
+make docker-build-gpu TAG=v0.1.0 MODEL_REVISION=<revision-sha>
+```
+
+### 3. GHCR 푸시
+
+```bash
+# GPU/CPU 모두 푸시 + latest 이동 태그 갱신
+make docker-push-all TAG=v0.1.0
+```
+
+푸시되는 태그:
+
+- `ghcr.io/teamatoi/mit-tts:gpu-v0.1.0`
+- `ghcr.io/teamatoi/mit-tts:cpu-v0.1.0`
+- `ghcr.io/teamatoi/mit-tts:gpu-latest`
+- `ghcr.io/teamatoi/mit-tts:cpu-latest`
+
+### 4. GPU 서버 실행 (Docker Compose)
+
+```bash
+# 기본 이미지: ghcr.io/teamatoi/mit-tts:gpu-latest
+docker compose pull
+docker compose up -d
+
+# 특정 태그로 오버라이드
+TTS_GPU_IMAGE=ghcr.io/teamatoi/mit-tts:gpu-v0.1.0 docker compose up -d
+```
+
+접속:
+
+- `http://<server-ip>:8005/health`
+- `http://<server-ip>:8005/docs`
+
+중지:
+
+```bash
+docker compose down
+```
+
+### 5. CPU 이미지 단독 실행 (docker run)
+
+```bash
+docker run -d \
+  --name tts-cpu \
+  -p 8005:8000 \
+  -e TTS_USE_GPU=false \
+  ghcr.io/teamatoi/mit-tts:cpu-latest
+```
 
 ---
 
